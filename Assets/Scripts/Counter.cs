@@ -7,49 +7,27 @@ public class Counter : MonoBehaviour
     [SerializeField] private float _step = 0.5f;
     [SerializeField] private float _delay = 1f;
 
-    private float _count;
-    private bool _isRunning;
-    private Coroutine _counterRoutine;
-
-    private PlayerInput _playerInput;
-    private ViewCounter _viewCounter;
-
     public event UnityAction CountChanged;
+
+    private InputReader _inputReader;
+
+    private Coroutine _currentCoroutine;
+    private float _count;
+    private bool _isRunning = true;
 
     public float Count => _count;
 
     private void Awake()
     {
-        _playerInput = new PlayerInput();
-
-        _playerInput.Player.ClickMouseLeft.performed += context => ToggleCounter();
+        _inputReader = GetComponent<InputReader>();
+        _count = 0;
     }
 
     private void OnEnable() =>
-        _playerInput.Enable();
+        _inputReader.MouseClicked += ToggleCounter;
 
     private void OnDisable() =>
-        _playerInput.Disable();
-
-    private void Start()
-    {
-        _count = 0;
-        _viewCounter = GetComponent<ViewCounter>();
-    }
-
-    private void ToggleCounter()
-    {
-        if (_isRunning)
-        {
-            StopCoroutine(_counterRoutine);
-            _isRunning = false;
-        }
-        else
-        {
-            _counterRoutine = StartCoroutine(CounterRoutine());
-            _isRunning = true;
-        }
-    }
+        _inputReader.MouseClicked -= ToggleCounter;
 
     private void Increase()
     {
@@ -59,10 +37,26 @@ public class Counter : MonoBehaviour
 
     private IEnumerator CounterRoutine()
     {
+        WaitForSeconds waitForSeconds = new(_delay);
+
         while (true)
         {
             Increase();
-            yield return new WaitForSeconds(_delay);
+            yield return waitForSeconds;
+        }
+    }
+
+    private void ToggleCounter()
+    {
+        if (_isRunning)
+        {
+            _currentCoroutine = StartCoroutine(CounterRoutine());
+            _isRunning = false;
+        }
+        else
+        {
+            StopCoroutine(_currentCoroutine);
+            _isRunning = true;
         }
     }
 }
